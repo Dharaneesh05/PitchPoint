@@ -24,12 +24,26 @@ export function CricketApp() {
     });
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
+  const handleLogout = async () => {
+    try {
+      const { apiClient } = await import('@/lib/api');
+      await apiClient.logout();
+      setUser(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Clear user even if API call fails
+      setUser(null);
+      const { apiClient } = await import('@/lib/api');
+      apiClient.clearToken();
+      toast({
+        title: "Logged out",
+        description: "You have been logged out",
+      });
+    }
   };
 
   if (!user) {

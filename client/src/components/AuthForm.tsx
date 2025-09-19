@@ -89,16 +89,39 @@ export function AuthForm({ onLogin }: AuthFormProps) {
       }
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log(activeTab === "login" ? "Login submitted" : "Signup submitted", formData);
+    try {
+      let response;
+      
+      if (activeTab === "login") {
+        // Import the API client dynamically to avoid issues
+        const { apiClient } = await import('@/lib/api');
+        response = await apiClient.login({
+          username: formData.username,
+          password: formData.password,
+        });
+      } else {
+        // Import the API client dynamically to avoid issues
+        const { apiClient } = await import('@/lib/api');
+        response = await apiClient.register({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        });
+      }
+
       toast({
-        title: activeTab === "login" ? "Login Successful" : "Account Created",
-        description: `Welcome to CricketPro, ${formData.username}!`,
+        title: response.message,
+        description: `Welcome to CricketPro, ${response.user.username}!`,
       });
-      onLogin(formData.username, formData.role);
+      
+      onLogin(response.user.username, response.user.role);
+    } catch (error) {
+      console.error('Auth error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const currentRole = roleDescriptions[formData.role];
