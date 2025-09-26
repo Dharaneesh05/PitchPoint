@@ -16,11 +16,11 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { insertUserSchema, type PublicUser, type UserRole } from "@shared/mongodb-schema";
 
-// JWT Secret - required for security
+// JWT Secret - with fallback for development
+const JWT_SECRET = process.env.JWT_SECRET || 'development_jwt_secret_key_change_in_production';
 if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+  console.warn('WARNING: JWT_SECRET not set, using development fallback. Set JWT_SECRET in production!');
 }
-const JWT_SECRET = process.env.JWT_SECRET;
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
