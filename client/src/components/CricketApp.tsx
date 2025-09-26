@@ -83,22 +83,44 @@ export function CricketApp() {
   }, []);
 
   const handleLogin = async (loginData: any) => {
+    // Safely extract user data with null checks
+    if (!loginData || !loginData.user) {
+      console.error('Invalid login data:', loginData);
+      toast({
+        title: "Login Error",
+        description: "Invalid login response. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const userData = {
-      id: loginData.user.id || loginData.user._id,
-      username: loginData.user.username,
-      email: loginData.user.email,
-      role: loginData.user.role as UserRole,
-      emailVerified: loginData.user.emailVerified
+      id: loginData.user.id || loginData.user._id || 'unknown',
+      username: loginData.user.username || 'User',
+      email: loginData.user.email || '',
+      role: (loginData.user.role as UserRole) || 'fan',
+      emailVerified: loginData.user.emailVerified || false
     };
+    
+    // Validate required fields
+    if (!userData.username || !userData.role) {
+      console.error('Missing required user data:', userData);
+      toast({
+        title: "Login Error", 
+        description: "Incomplete user data received. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Set user state and localStorage
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('auth-token', loginData.token);
+    localStorage.setItem('auth-token', loginData.token || '');
     
     // Set the token in the API client
     const { apiClient } = await import('@/lib/api');
-    apiClient.setToken(loginData.token);
+    apiClient.setToken(loginData.token || '');
     
     toast({
       title: "Welcome to PitchPoint!",

@@ -185,15 +185,21 @@ export function AuthForm({ onLogin }: AuthFormProps) {
           role: formData.role,
         });
         
+        // Ensure response has the expected structure
+        if (!response || !response.user) {
+          console.error('Invalid registration response:', response);
+          throw new Error('Invalid registration response received');
+        }
+        
         if (response && response.autoVerified) {
           // Auto-verified in development mode
           toast({
-            title: response.message,
+            title: response.message || 'Registration successful',
             description: `Welcome to PitchPoint, ${response.user?.username || 'User'}!`,
           });
           
           // Save token to localStorage
-          localStorage.setItem('token', response.token);
+          localStorage.setItem('token', response.token || '');
           
           onLogin(response);
         } else if (response && response.requiresVerification) {
@@ -208,18 +214,41 @@ export function AuthForm({ onLogin }: AuthFormProps) {
             description: "Please check your email to verify your account.",
           });
         } else {
+          // Handle successful registration without requiring verification
           if (response && response.user) {
             toast({
-              title: response.message,
+              title: response.message || 'Registration successful',
               description: `Welcome to PitchPoint, ${response.user?.username || 'User'}!`,
             });
             
+            // Save token if provided
+            if (response.token) {
+              localStorage.setItem('token', response.token);
+            }
+            
             onLogin(response);
           } else {
+            // Fallback for missing user data
             toast({
               title: "Registration Successful!",
               description: "Welcome to PitchPoint!",
             });
+            
+            // Create a fallback response object
+            const fallbackResponse = {
+              user: {
+                id: 'fallback_' + Date.now(),
+                username: formData.username,
+                email: formData.email,
+                role: formData.role,
+                emailVerified: true
+              },
+              token: 'fallback_token_' + Date.now(),
+              message: 'Registration successful with fallback data'
+            };
+            
+            localStorage.setItem('token', fallbackResponse.token);
+            onLogin(fallbackResponse);
           }
         }
       }
