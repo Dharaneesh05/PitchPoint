@@ -8,7 +8,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-render-backend-url.onrender.com/api/$1"
+      "destination": "https://pitchpoint-backend.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
@@ -16,6 +16,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://your-render-backend-url.onrender.com"
+    "VITE_API_URL": "https://pitchpoint-backend.onrender.com"
   }
 }
