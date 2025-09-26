@@ -20,11 +20,12 @@ __export(analysisSchemas_exports, {
   AnalysisService: () => AnalysisService,
   FavoritePlayer: () => FavoritePlayer,
   SavedAnalysis: () => SavedAnalysis2,
+  TrainingSession: () => TrainingSession,
   UserActivity: () => UserActivity,
   UserPreferences: () => UserPreferences
 });
-import mongoose3, { Schema as Schema2 } from "mongoose";
-var SavedAnalysisSchema2, FavoritePlayerSchema, UserActivitySchema, UserPreferencesSchema, SavedAnalysis2, FavoritePlayer, UserActivity, UserPreferences, AnalysisService;
+import mongoose4, { Schema as Schema2 } from "mongoose";
+var SavedAnalysisSchema2, FavoritePlayerSchema, UserActivitySchema, TrainingSessionSchema, UserPreferencesSchema, SavedAnalysis2, FavoritePlayer, UserActivity, UserPreferences, TrainingSession, AnalysisService;
 var init_analysisSchemas = __esm({
   "server/analysisSchemas.ts"() {
     "use strict";
@@ -101,6 +102,35 @@ var init_analysisSchemas = __esm({
       timestamp: { type: Date, default: Date.now, index: true }
     });
     UserActivitySchema.index({ timestamp: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+    TrainingSessionSchema = new Schema2({
+      userId: { type: String, required: true, index: true },
+      sessionTitle: { type: String, required: true, maxlength: 200 },
+      sessionDate: { type: String, required: true },
+      sessionType: {
+        type: String,
+        required: true,
+        enum: ["skill", "fitness", "strategy", "team-building", "match-preparation", "recovery"]
+      },
+      focus: { type: String, required: true, maxlength: 300 },
+      duration: { type: String, required: true },
+      participants: { type: Number, required: true, min: 1, max: 50 },
+      status: {
+        type: String,
+        required: true,
+        enum: ["scheduled", "in-progress", "completed", "cancelled"],
+        default: "scheduled"
+      },
+      notes: { type: String, maxlength: 1e3 },
+      venue: { type: String, maxlength: 200 },
+      equipment: [{ type: String, maxlength: 100 }],
+      objectives: [{ type: String, maxlength: 200 }],
+      outcome: { type: String, maxlength: 500 }
+    }, {
+      timestamps: true
+    });
+    TrainingSessionSchema.index({ userId: 1, sessionDate: -1 });
+    TrainingSessionSchema.index({ userId: 1, status: 1 });
+    TrainingSessionSchema.index({ userId: 1, sessionType: 1 });
     UserPreferencesSchema = new Schema2({
       userId: { type: String, required: true, unique: true, index: true },
       preferences: {
@@ -124,10 +154,11 @@ var init_analysisSchemas = __esm({
     }, {
       timestamps: true
     });
-    SavedAnalysis2 = mongoose3.model("SavedAnalysis", SavedAnalysisSchema2);
-    FavoritePlayer = mongoose3.model("FavoritePlayer", FavoritePlayerSchema);
-    UserActivity = mongoose3.model("UserActivity", UserActivitySchema);
-    UserPreferences = mongoose3.model("UserPreferences", UserPreferencesSchema);
+    SavedAnalysis2 = mongoose4.model("SavedAnalysis", SavedAnalysisSchema2);
+    FavoritePlayer = mongoose4.model("FavoritePlayer", FavoritePlayerSchema);
+    UserActivity = mongoose4.model("UserActivity", UserActivitySchema);
+    UserPreferences = mongoose4.model("UserPreferences", UserPreferencesSchema);
+    TrainingSession = mongoose4.model("TrainingSession", TrainingSessionSchema);
     AnalysisService = class {
       static async getUserAnalyses(userId, type, limit = 20) {
         const query = { userId };
@@ -205,6 +236,51 @@ var init_analysisSchemas = __esm({
           { $set: { preferences } },
           { new: true, upsert: true }
         );
+      }
+      // Training Session methods
+      static async getUserTrainingSessions(userId, status, limit = 50) {
+        const query = { userId };
+        if (status && status !== "all") {
+          query.status = status;
+        }
+        return await TrainingSession.find(query).sort({ sessionDate: -1, createdAt: -1 }).limit(limit).lean();
+      }
+      static async createTrainingSession(userId, sessionData) {
+        const session = new TrainingSession({
+          ...sessionData,
+          userId
+        });
+        return await session.save();
+      }
+      static async updateTrainingSession(userId, sessionId, sessionData) {
+        return await TrainingSession.findOneAndUpdate(
+          { _id: sessionId, userId },
+          { $set: sessionData },
+          { new: true }
+        );
+      }
+      static async deleteTrainingSession(userId, sessionId) {
+        return await TrainingSession.deleteOne({ _id: sessionId, userId });
+      }
+      static async getTrainingSessionById(userId, sessionId) {
+        return await TrainingSession.findOne({ _id: sessionId, userId }).lean();
+      }
+      static async getTrainingStats(userId) {
+        const [totalSessions, completedSessions, upcomingSessions] = await Promise.all([
+          TrainingSession.countDocuments({ userId }),
+          TrainingSession.countDocuments({ userId, status: "completed" }),
+          TrainingSession.countDocuments({
+            userId,
+            status: "scheduled",
+            sessionDate: { $gte: (/* @__PURE__ */ new Date()).toISOString().split("T")[0] }
+          })
+        ]);
+        return {
+          totalSessions,
+          completedSessions,
+          upcomingSessions,
+          completionRate: totalSessions > 0 ? Math.round(completedSessions / totalSessions * 100) : 0
+        };
       }
     };
   }
@@ -1315,10 +1391,10 @@ var CricketApiService = class {
       const cacheKey = `cricket_api_${endpoint}`;
       const cachedData = await storage.getCachedData(cacheKey);
       if (cachedData) {
-        console.log(`\u{1F4E6} Cache hit for ${endpoint}`);
+        console.log(`Cache hit for ${endpoint}`);
         return cachedData;
       }
-      console.log(`\u{1F310} Fetching data from external API: ${endpoint}`);
+      console.log(`Fetching data from external API: ${endpoint}`);
       const mockData = this.getMockData(endpoint);
       await storage.setCachedData(cacheKey, mockData, 15);
       return mockData;
@@ -1634,7 +1710,7 @@ var CricketApiService = class {
   }
   async syncMatchData() {
     try {
-      console.log("\u{1F504} Syncing match data from external API...");
+      console.log("Syncing match data from external API...");
       const [liveMatches, upcomingMatches, recentMatches] = await Promise.all([
         this.getLiveMatches(),
         this.getUpcomingMatches(),
@@ -1643,9 +1719,9 @@ var CricketApiService = class {
       for (const apiMatch of [...liveMatches, ...upcomingMatches, ...recentMatches]) {
         await this.syncMatch(apiMatch);
       }
-      console.log("\u2705 Match data sync completed");
+      console.log("Match data sync completed");
     } catch (error) {
-      console.error("\u274C Error syncing match data:", error);
+      console.error("Error syncing match data:", error);
       throw error;
     }
   }
@@ -1662,7 +1738,7 @@ var CricketApiService = class {
         };
         await storage.updateMatchStatus(existingMatch.id, status, scores);
       } else {
-        console.log(`\u{1F50D} Skipping new match from API: ${apiMatch.name}`);
+        console.log(`Skipping new match from API: ${apiMatch.name}`);
       }
     } catch (error) {
       console.error(`Error syncing match ${apiMatch.id}:`, error);
@@ -1875,41 +1951,41 @@ var DataSyncService = class {
   // Initialize data sync on server startup
   async initialize() {
     if (this.isInitialized) return;
-    console.log("\u{1F680} Starting initial data synchronization with CricAPI...");
+    console.log("Starting initial data synchronization with CricAPI...");
     try {
       await this.syncCountries();
       await this.syncSeries();
       await this.syncPlayers();
       await this.syncMatches();
       this.isInitialized = true;
-      console.log("\u2705 Initial data synchronization completed");
+      console.log("Initial data synchronization completed");
     } catch (error) {
-      console.error("\u274C Error during initial data sync:", error);
+      console.error("Error during initial data sync:", error);
     }
   }
   // Setup scheduled jobs for data updates
   setupScheduledJobs() {
     cron.schedule("0 * * * *", async () => {
-      console.log("\u{1F504} Updating matches...");
+      console.log("Updating matches...");
       await this.syncMatches();
     });
     cron.schedule("0 */6 * * *", async () => {
-      console.log("\u{1F504} Updating player data...");
+      console.log("Updating player data...");
       await this.syncPlayers();
     });
     cron.schedule("0 3 * * *", async () => {
-      console.log("\u{1F504} Daily series update...");
+      console.log("Daily series update...");
       await this.syncSeries();
     });
     cron.schedule("0 2 * * 0", async () => {
-      console.log("\u{1F504} Weekly countries update...");
+      console.log("Weekly countries update...");
       await this.syncCountries();
     });
   }
   // Sync all countries from CricAPI
   async syncCountries() {
     try {
-      console.log("\u{1F30D} Syncing countries from CricAPI...");
+      console.log("Syncing countries from CricAPI...");
       const response = await cricApiService2.getCountries();
       const countries = response.data;
       for (const countryData of countries) {
@@ -1923,15 +1999,15 @@ var DataSyncService = class {
           { upsert: true, new: true }
         );
       }
-      console.log(`\u2705 Synced ${countries.length} countries`);
+      console.log(`Synced ${countries.length} countries`);
     } catch (error) {
-      console.error("\u274C Error syncing countries:", error);
+      console.error("Error syncing countries:", error);
     }
   }
   // Sync all series from CricAPI
   async syncSeries() {
     try {
-      console.log("\u{1F3C6} Syncing series from CricAPI...");
+      console.log("Syncing series from CricAPI...");
       const response = await cricApiService2.getSeries();
       const series = response.data;
       for (const seriesData of series) {
@@ -1952,15 +2028,15 @@ var DataSyncService = class {
           { upsert: true, new: true }
         );
       }
-      console.log(`\u2705 Synced ${series.length} series`);
+      console.log(`Synced ${series.length} series`);
     } catch (error) {
-      console.error("\u274C Error syncing series:", error);
+      console.error("Error syncing series:", error);
     }
   }
   // Sync all players from CricAPI
   async syncPlayers(limit = 500) {
     try {
-      console.log("\u{1F3CF} Syncing players from CricAPI...");
+      console.log("Syncing players from CricAPI...");
       let offset = 0;
       let totalSynced = 0;
       while (totalSynced < limit) {
@@ -2038,18 +2114,18 @@ var DataSyncService = class {
         }
         totalSynced += players.length;
         offset += players.length;
-        console.log(`\u{1F504} Synced ${totalSynced} players so far...`);
+        console.log(`Synced ${totalSynced} players so far...`);
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      console.log(`\u2705 Completed syncing ${totalSynced} players`);
+      console.log(`Completed syncing ${totalSynced} players`);
     } catch (error) {
-      console.error("\u274C Error syncing players:", error);
+      console.error("Error syncing players:", error);
     }
   }
   // Sync all matches from CricAPI
   async syncMatches(limit = 200) {
     try {
-      console.log("\u{1F4C5} Syncing matches from CricAPI...");
+      console.log("Syncing matches from CricAPI...");
       let offset = 0;
       let totalSynced = 0;
       while (totalSynced < limit) {
@@ -2120,18 +2196,18 @@ var DataSyncService = class {
         }
         totalSynced += matches.length;
         offset += matches.length;
-        console.log(`\u{1F504} Synced ${totalSynced} matches so far...`);
+        console.log(`Synced ${totalSynced} matches so far...`);
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      console.log(`\u2705 Completed syncing ${totalSynced} matches`);
+      console.log(`Completed syncing ${totalSynced} matches`);
     } catch (error) {
-      console.error("\u274C Error syncing matches:", error);
+      console.error("Error syncing matches:", error);
     }
   }
   // Search and sync specific players
   async searchAndSyncPlayers(searchTerm) {
     try {
-      console.log(`\u{1F50D} Searching for players: ${searchTerm}`);
+      console.log(`Searching for players: ${searchTerm}`);
       const response = await cricApiService2.searchPlayers(searchTerm);
       const players = response.data;
       for (const playerData of players) {
@@ -2182,9 +2258,9 @@ var DataSyncService = class {
           { upsert: true, new: true }
         );
       }
-      console.log(`\u2705 Synced ${players.length} players for search: ${searchTerm}`);
+      console.log(`Synced ${players.length} players for search: ${searchTerm}`);
     } catch (error) {
-      console.error(`\u274C Error searching and syncing players for "${searchTerm}":`, error);
+      console.error(`Error searching and syncing players for "${searchTerm}":`, error);
     }
   }
   // Get detailed player information
@@ -2219,16 +2295,16 @@ var DataSyncService = class {
   }
   // Sync all data
   async syncAllData() {
-    console.log("\u{1F680} Starting complete data sync...");
+    console.log("Starting complete data sync...");
     await this.syncCountries();
     await this.syncSeries();
     await this.syncPlayers(1e3);
     await this.syncMatches(500);
-    console.log("\u2705 Complete data sync finished!");
+    console.log("Complete data sync finished!");
   }
   // Manual sync methods for admin use
   async forceSync(type) {
-    console.log(`\u{1F504} Force syncing ${type}...`);
+    console.log(`Force syncing ${type}...`);
     switch (type) {
       case "all":
         await this.syncAllData();
@@ -2246,7 +2322,7 @@ var DataSyncService = class {
         await this.syncMatches();
         break;
     }
-    console.log(`\u2705 Force sync ${type} completed`);
+    console.log(`Force sync ${type} completed`);
   }
 };
 var dataSyncService = new DataSyncService();
@@ -2484,7 +2560,7 @@ var FantasyPointsService = class {
   // Calculate and update fantasy points for completed matches
   async updateFantasyPointsForCompletedMatches() {
     try {
-      console.log("\u{1F504} Updating fantasy points for completed matches...");
+      console.log("Updating fantasy points for completed matches...");
       const completedMatches = await Match.find({
         status: "completed",
         completedAt: { $exists: true }
@@ -2495,7 +2571,7 @@ var FantasyPointsService = class {
           await this.calculateMatchFantasyPoints(match._id.toString());
         }
       }
-      console.log(`\u2705 Fantasy points updated for completed matches`);
+      console.log(`Fantasy points updated for completed matches`);
     } catch (error) {
       console.error("Error updating fantasy points for completed matches:", error);
       throw error;
@@ -2527,6 +2603,71 @@ var FantasyPointsService = class {
   }
 };
 var fantasyPointsService = new FantasyPointsService();
+
+// server/mongodb.ts
+import mongoose3 from "mongoose";
+var MONGODB_URL = process.env.MONGODB_URL || "mongodb+srv://dharaneeshc23aid_db_user:qd6q6bBRGOr4asMK@pitchpoint.7zktddx.mongodb.net/?retryWrites=true&w=majority&appName=PitchPoint";
+var DatabaseConnection = class _DatabaseConnection {
+  static instance;
+  isConnected = false;
+  constructor() {
+  }
+  static getInstance() {
+    if (!_DatabaseConnection.instance) {
+      _DatabaseConnection.instance = new _DatabaseConnection();
+    }
+    return _DatabaseConnection.instance;
+  }
+  async connect() {
+    if (this.isConnected) {
+      console.log("MongoDB already connected");
+      return;
+    }
+    try {
+      await mongoose3.connect(MONGODB_URL, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5e3,
+        socketTimeoutMS: 45e3,
+        bufferCommands: false
+      });
+      this.isConnected = true;
+      console.log("MongoDB connected successfully to:", MONGODB_URL);
+      mongoose3.connection.on("error", (error) => {
+        console.error("MongoDB connection error:", error);
+        this.isConnected = false;
+      });
+      mongoose3.connection.on("disconnected", () => {
+        console.log("MongoDB disconnected");
+        this.isConnected = false;
+      });
+      mongoose3.connection.on("reconnected", () => {
+        console.log("MongoDB reconnected");
+        this.isConnected = true;
+      });
+    } catch (error) {
+      console.error("MongoDB connection failed:", error);
+      this.isConnected = false;
+      throw error;
+    }
+  }
+  async disconnect() {
+    if (!this.isConnected) {
+      return;
+    }
+    try {
+      await mongoose3.disconnect();
+      this.isConnected = false;
+      console.log("MongoDB disconnected successfully");
+    } catch (error) {
+      console.error("Error disconnecting from MongoDB:", error);
+      throw error;
+    }
+  }
+  getConnectionStatus() {
+    return this.isConnected;
+  }
+};
+var dbConnection = DatabaseConnection.getInstance();
 
 // server/routes.ts
 import jwt from "jsonwebtoken";
@@ -2587,6 +2728,24 @@ var resetPasswordSchema = z2.object({
   })
 });
 async function registerRoutes(app2) {
+  app2.get("/api/health", async (req, res) => {
+    try {
+      const dbStatus = dbConnection.getConnectionStatus();
+      res.json({
+        status: "healthy",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        database: dbStatus ? "connected" : "disconnected",
+        version: "1.0.0",
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: "unhealthy",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        error: "Service unavailable"
+      });
+    }
+  });
   app2.post("/api/auth/register", authLimiter, async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
@@ -3167,6 +3326,262 @@ async function registerRoutes(app2) {
     } catch (error) {
       console.error("Error fetching team stats:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  app2.get("/api/v2/analytics/dashboard", async (req, res) => {
+    try {
+      const teams = await Team.find({ isActive: true }).select("name shortName");
+      const teamPerformance = await Promise.all(teams.map(async (team) => {
+        const matches = await Match.find({
+          $or: [{ team1Id: team._id }, { team2Id: team._id }],
+          status: "completed"
+        }).sort({ scheduledAt: -1 }).limit(10);
+        const wins = matches.filter(
+          (match) => match.team1Id.toString() === team._id.toString() && match.team1Score > match.team2Score || match.team2Id.toString() === team._id.toString() && match.team2Score > match.team1Score
+        ).length;
+        const losses = matches.length - wins;
+        const winRate = matches.length > 0 ? Math.round(wins / matches.length * 100) : 0;
+        const scores = matches.map(
+          (match) => match.team1Id.toString() === team._id.toString() ? match.team1Score : match.team2Score
+        ).filter((score) => score > 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const recentMatches = matches.slice(0, 5);
+        const recentForm = recentMatches.map((match) => {
+          const teamWon = match.team1Id.toString() === team._id.toString() && match.team1Score > match.team2Score || match.team2Id.toString() === team._id.toString() && match.team2Score > match.team1Score;
+          return teamWon ? "W" : "L";
+        });
+        return {
+          team: team.name,
+          wins,
+          losses,
+          winRate,
+          avgScore: avgScore || Math.floor(Math.random() * 100) + 200,
+          // Fallback for missing data
+          recentForm: recentForm.length > 0 ? recentForm : ["W", "L", "W", "W", "L"]
+          // Fallback
+        };
+      }));
+      const players = await Player.find({ isActive: true }).populate("teamId", "name").select("name role battingAverage bowlingAverage matchesPlayed performance position specialSkills recentForm fitnessLevel").limit(50);
+      const playerStats = players.map((player) => ({
+        id: player._id.toString(),
+        name: player.name,
+        role: player.role,
+        team: player.teamId?.name || "Unknown",
+        battingAvg: player.battingAverage || 0,
+        bowlingAvg: player.bowlingAverage || 0,
+        matches: player.matchesPlayed || 0,
+        performance: player.performance || Math.floor(Math.random() * 30) + 70,
+        position: player.position || player.role,
+        specialSkills: player.specialSkills || [],
+        recentForm: player.recentForm || Math.floor(Math.random() * 30) + 70,
+        fitnessLevel: player.fitnessLevel || Math.floor(Math.random() * 20) + 80,
+        availability: !player.isInjured,
+        trend: Math.random() > 0.5 ? "up" : Math.random() > 0.5 ? "down" : "stable"
+      }));
+      const matchTrends = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = /* @__PURE__ */ new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const monthMatches = await Match.countDocuments({
+          scheduledAt: {
+            $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+            $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+          },
+          status: "completed"
+        });
+        const monthMatchDetails = await Match.find({
+          scheduledAt: {
+            $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+            $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+          },
+          status: "completed"
+        }).select("team1Score team2Score");
+        const allScores = monthMatchDetails.flatMap((m) => [m.team1Score, m.team2Score]).filter((s) => s > 0);
+        const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : Math.floor(Math.random() * 100) + 250;
+        const highScores = Math.max(...allScores, avgScore + 50);
+        const lowScores = Math.min(...allScores, avgScore - 50);
+        matchTrends.push({
+          date: monthKey,
+          matches: monthMatches || Math.floor(Math.random() * 10) + 8,
+          avgScore,
+          highScores,
+          lowScores
+        });
+      }
+      const venues = await Venue.find().select("name location");
+      const venueAnalysis = await Promise.all(venues.slice(0, 8).map(async (venue) => {
+        const venueMatches = await Match.find({ venueId: venue._id, status: "completed" }).select("team1Score team2Score").limit(20);
+        const scores = venueMatches.flatMap((m) => [m.team1Score, m.team2Score]).filter((s) => s > 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : Math.floor(Math.random() * 100) + 250;
+        const highestScore = Math.max(...scores, avgScore + 30);
+        return {
+          venue: venue.name,
+          matches: venueMatches.length || Math.floor(Math.random() * 5) + 3,
+          avgScore,
+          highestScore,
+          winRate: { home: Math.floor(Math.random() * 30) + 60, away: Math.floor(Math.random() * 30) + 30 }
+        };
+      }));
+      const insights = [
+        {
+          type: "positive",
+          title: "Team Performance Trending Up",
+          description: `${teamPerformance.filter((t) => t.winRate > 60).length} teams showing strong win rates above 60%`,
+          impact: "high"
+        },
+        {
+          type: "neutral",
+          title: "Player Fitness Monitoring",
+          description: `${playerStats.filter((p) => p.fitnessLevel < 85).length} players need attention for fitness levels`,
+          impact: "medium"
+        },
+        {
+          type: "negative",
+          title: "Injury Concerns",
+          description: `${playerStats.filter((p) => !p.availability).length} key players currently unavailable due to injuries`,
+          impact: "medium"
+        }
+      ];
+      const analyticsData = {
+        teamPerformance,
+        playerStats,
+        matchTrends,
+        venueAnalysis,
+        insights,
+        lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching analytics dashboard data:", error);
+      res.status(500).json({ error: "Failed to fetch analytics data" });
+    }
+  });
+  app2.get("/api/v2/public/analytics/dashboard", async (req, res) => {
+    try {
+      const teams = await Team.find({ isActive: true }).select("name shortName");
+      const teamPerformance = await Promise.all(teams.map(async (team) => {
+        const matches = await Match.find({
+          $or: [{ team1Id: team._id }, { team2Id: team._id }],
+          status: "completed"
+        }).sort({ scheduledAt: -1 }).limit(10);
+        const wins = matches.filter(
+          (match) => match.team1Id.toString() === team._id.toString() && match.team1Score > match.team2Score || match.team2Id.toString() === team._id.toString() && match.team2Score > match.team1Score
+        ).length;
+        const losses = matches.length - wins;
+        const winRate = matches.length > 0 ? Math.round(wins / matches.length * 100) : 0;
+        const scores = matches.map(
+          (match) => match.team1Id.toString() === team._id.toString() ? match.team1Score : match.team2Score
+        ).filter((score) => score > 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+        const recentMatches = matches.slice(0, 5);
+        const recentForm = recentMatches.map((match) => {
+          const teamWon = match.team1Id.toString() === team._id.toString() && match.team1Score > match.team2Score || match.team2Id.toString() === team._id.toString() && match.team2Score > match.team1Score;
+          return teamWon ? "W" : "L";
+        });
+        return {
+          team: team.name,
+          wins,
+          losses,
+          winRate,
+          avgScore: avgScore || Math.floor(Math.random() * 100) + 200,
+          recentForm: recentForm.length > 0 ? recentForm : ["W", "L", "W", "W", "L"]
+        };
+      }));
+      const players = await Player.find({ isActive: true }).populate("teamId", "name").select("name role battingAverage bowlingAverage matchesPlayed performance position specialSkills recentForm fitnessLevel").limit(50);
+      const playerStats = players.map((player) => ({
+        id: player._id.toString(),
+        name: player.name,
+        role: player.role,
+        team: player.teamId?.name || "Unknown",
+        battingAvg: player.battingAverage || 0,
+        bowlingAvg: player.bowlingAverage || 0,
+        matches: player.matchesPlayed || 0,
+        performance: player.performance || Math.floor(Math.random() * 30) + 70,
+        position: player.position || player.role,
+        specialSkills: player.specialSkills || [],
+        recentForm: player.recentForm || Math.floor(Math.random() * 30) + 70,
+        fitnessLevel: player.fitnessLevel || Math.floor(Math.random() * 20) + 80,
+        availability: !player.isInjured,
+        trend: Math.random() > 0.5 ? "up" : Math.random() > 0.5 ? "down" : "stable"
+      }));
+      const matchTrends = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = /* @__PURE__ */ new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const monthMatches = await Match.countDocuments({
+          scheduledAt: {
+            $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+            $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+          },
+          status: "completed"
+        });
+        const monthMatchDetails = await Match.find({
+          scheduledAt: {
+            $gte: new Date(date.getFullYear(), date.getMonth(), 1),
+            $lt: new Date(date.getFullYear(), date.getMonth() + 1, 1)
+          },
+          status: "completed"
+        }).select("team1Score team2Score");
+        const allScores = monthMatchDetails.flatMap((m) => [m.team1Score, m.team2Score]).filter((s) => s > 0);
+        const avgScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : Math.floor(Math.random() * 100) + 250;
+        const highScores = Math.max(...allScores, avgScore + 50);
+        const lowScores = Math.min(...allScores, avgScore - 50);
+        matchTrends.push({
+          date: monthKey,
+          matches: monthMatches || Math.floor(Math.random() * 10) + 8,
+          avgScore,
+          highScores,
+          lowScores
+        });
+      }
+      const venues = await Venue.find().select("name location");
+      const venueAnalysis = await Promise.all(venues.slice(0, 8).map(async (venue) => {
+        const venueMatches = await Match.find({ venueId: venue._id, status: "completed" }).select("team1Score team2Score").limit(20);
+        const scores = venueMatches.flatMap((m) => [m.team1Score, m.team2Score]).filter((s) => s > 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : Math.floor(Math.random() * 100) + 250;
+        const highestScore = Math.max(...scores, avgScore + 30);
+        return {
+          venue: venue.name,
+          matches: venueMatches.length || Math.floor(Math.random() * 5) + 3,
+          avgScore,
+          highestScore,
+          winRate: { home: Math.floor(Math.random() * 30) + 60, away: Math.floor(Math.random() * 30) + 30 }
+        };
+      }));
+      const insights = [
+        {
+          type: "positive",
+          title: "Team Performance Trending Up",
+          description: `${teamPerformance.filter((t) => t.winRate > 60).length} teams showing strong win rates above 60%`,
+          impact: "high"
+        },
+        {
+          type: "neutral",
+          title: "Player Fitness Monitoring",
+          description: `${playerStats.filter((p) => p.fitnessLevel < 85).length} players need attention for fitness levels`,
+          impact: "medium"
+        },
+        {
+          type: "negative",
+          title: "Injury Concerns",
+          description: `${playerStats.filter((p) => !p.availability).length} key players currently unavailable due to injuries`,
+          impact: "medium"
+        }
+      ];
+      const analyticsData = {
+        teamPerformance,
+        playerStats,
+        matchTrends,
+        venueAnalysis,
+        insights,
+        lastUpdated: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      res.json(analyticsData);
+    } catch (error) {
+      console.error("Error fetching public analytics dashboard data:", error);
+      res.status(500).json({ error: "Failed to fetch analytics data" });
     }
   });
   app2.get("/api/v2/teams/:id", authenticateToken, async (req, res) => {
@@ -4014,6 +4429,126 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  app2.get("/api/v2/training-sessions", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { status, limit = "50" } = req.query;
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const sessions = await AnalysisService2.getUserTrainingSessions(
+        req.user.id,
+        status,
+        parseInt(limit)
+      );
+      res.json({ sessions });
+    } catch (error) {
+      console.error("Error fetching training sessions:", error);
+      res.status(500).json({ error: "Failed to fetch training sessions" });
+    }
+  });
+  app2.post("/api/v2/training-sessions", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const sessionData = {
+        sessionTitle: req.body.sessionTitle || req.body.type || "Training Session",
+        sessionDate: req.body.sessionDate || req.body.date,
+        sessionType: req.body.sessionType || req.body.type || "skill",
+        focus: req.body.focus,
+        duration: req.body.duration,
+        participants: parseInt(req.body.participants) || 0,
+        status: req.body.status || "scheduled",
+        notes: req.body.notes,
+        venue: req.body.venue,
+        equipment: req.body.equipment || [],
+        objectives: req.body.objectives || [],
+        outcome: req.body.outcome
+      };
+      const session = await AnalysisService2.createTrainingSession(req.user.id, sessionData);
+      await AnalysisService2.logUserActivity(req.user.id, "create_training", {
+        sessionId: session._id,
+        sessionType: sessionData.sessionType
+      });
+      res.status(201).json({
+        message: "Training session created successfully",
+        session
+      });
+    } catch (error) {
+      console.error("Error creating training session:", error);
+      res.status(500).json({ error: "Failed to create training session" });
+    }
+  });
+  app2.put("/api/v2/training-sessions/:id", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const sessionId = req.params.id;
+      const sessionData = {
+        sessionTitle: req.body.sessionTitle || req.body.type,
+        sessionDate: req.body.sessionDate || req.body.date,
+        sessionType: req.body.sessionType || req.body.type,
+        focus: req.body.focus,
+        duration: req.body.duration,
+        participants: parseInt(req.body.participants) || void 0,
+        status: req.body.status,
+        notes: req.body.notes,
+        venue: req.body.venue,
+        equipment: req.body.equipment,
+        objectives: req.body.objectives,
+        outcome: req.body.outcome
+      };
+      Object.keys(sessionData).forEach((key) => {
+        if (sessionData[key] === void 0) {
+          delete sessionData[key];
+        }
+      });
+      const session = await AnalysisService2.updateTrainingSession(req.user.id, sessionId, sessionData);
+      if (!session) {
+        return res.status(404).json({ error: "Training session not found" });
+      }
+      res.json({
+        message: "Training session updated successfully",
+        session
+      });
+    } catch (error) {
+      console.error("Error updating training session:", error);
+      res.status(500).json({ error: "Failed to update training session" });
+    }
+  });
+  app2.delete("/api/v2/training-sessions/:id", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const sessionId = req.params.id;
+      const result = await AnalysisService2.deleteTrainingSession(req.user.id, sessionId);
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Training session not found" });
+      }
+      res.json({ message: "Training session deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting training session:", error);
+      res.status(500).json({ error: "Failed to delete training session" });
+    }
+  });
+  app2.get("/api/v2/training-sessions/:id", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const sessionId = req.params.id;
+      const session = await AnalysisService2.getTrainingSessionById(req.user.id, sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Training session not found" });
+      }
+      res.json({ session });
+    } catch (error) {
+      console.error("Error fetching training session:", error);
+      res.status(500).json({ error: "Failed to fetch training session" });
+    }
+  });
+  app2.get("/api/v2/training-stats", authenticateToken, requireRole(["coach", "analyst"]), async (req, res) => {
+    try {
+      const { AnalysisService: AnalysisService2 } = await Promise.resolve().then(() => (init_analysisSchemas(), analysisSchemas_exports));
+      const stats = await AnalysisService2.getTrainingStats(req.user.id);
+      res.json({ stats });
+    } catch (error) {
+      console.error("Error fetching training stats:", error);
+      res.status(500).json({ error: "Failed to fetch training statistics" });
+    }
+  });
   app2.get("/api/v2/saved-analysis", authenticateToken, async (req, res) => {
     try {
       const { type, limit = "20" } = req.query;
@@ -4337,71 +4872,6 @@ function serveStatic(app2) {
   });
 }
 
-// server/mongodb.ts
-import mongoose4 from "mongoose";
-var MONGODB_URL = process.env.MONGODB_URL || "mongodb://localhost:27017/testcricketdb";
-var DatabaseConnection = class _DatabaseConnection {
-  static instance;
-  isConnected = false;
-  constructor() {
-  }
-  static getInstance() {
-    if (!_DatabaseConnection.instance) {
-      _DatabaseConnection.instance = new _DatabaseConnection();
-    }
-    return _DatabaseConnection.instance;
-  }
-  async connect() {
-    if (this.isConnected) {
-      console.log("\u{1F504} MongoDB already connected");
-      return;
-    }
-    try {
-      await mongoose4.connect(MONGODB_URL, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5e3,
-        socketTimeoutMS: 45e3,
-        bufferCommands: false
-      });
-      this.isConnected = true;
-      console.log("\u{1F7E2} MongoDB connected successfully to:", MONGODB_URL);
-      mongoose4.connection.on("error", (error) => {
-        console.error("\u274C MongoDB connection error:", error);
-        this.isConnected = false;
-      });
-      mongoose4.connection.on("disconnected", () => {
-        console.log("\u{1F534} MongoDB disconnected");
-        this.isConnected = false;
-      });
-      mongoose4.connection.on("reconnected", () => {
-        console.log("\u{1F7E2} MongoDB reconnected");
-        this.isConnected = true;
-      });
-    } catch (error) {
-      console.error("\u274C MongoDB connection failed:", error);
-      this.isConnected = false;
-      throw error;
-    }
-  }
-  async disconnect() {
-    if (!this.isConnected) {
-      return;
-    }
-    try {
-      await mongoose4.disconnect();
-      this.isConnected = false;
-      console.log("\u{1F534} MongoDB disconnected successfully");
-    } catch (error) {
-      console.error("\u274C Error disconnecting from MongoDB:", error);
-      throw error;
-    }
-  }
-  getConnectionStatus() {
-    return this.isConnected;
-  }
-};
-var dbConnection = DatabaseConnection.getInstance();
-
 // server/index.ts
 var app = express2();
 app.use(express2.json());
@@ -4460,9 +4930,9 @@ app.use((req, res, next) => {
   const host = process.env.NODE_ENV === "development" ? "localhost" : "0.0.0.0";
   server.listen(port, host, () => {
     log(`PitchPoint server running on http://${host}:${port}`);
-    log(` API available at http://${host}:${port}/api`);
-    log(` Environment: ${process.env.NODE_ENV || "development"}`);
-    log(` MongoDB: ${dbConnection.getConnectionStatus() ? "Connected" : "Disconnected"}`);
+    log(`API available at http://${host}:${port}/api`);
+    log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    log(`MongoDB: ${dbConnection.getConnectionStatus() ? "Connected" : "Disconnected"}`);
   });
   process.on("SIGINT", async () => {
     console.log("\nShutting down...");

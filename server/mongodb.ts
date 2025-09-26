@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017/testcricketdb';
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb+srv://dharaneeshc23aid_db_user:qd6q6bBRGOr4asMK@pitchpoint.7zktddx.mongodb.net/?retryWrites=true&w=majority&appName=PitchPoint';
 
 class DatabaseConnection {
   private static instance: DatabaseConnection;

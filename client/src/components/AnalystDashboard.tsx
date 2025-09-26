@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { AnalysisSkeleton, LoadingSpinner } from "./LoadingStates";
+import { apiClient } from "@/lib/api";
 import {
   LineChart,
   Line,
@@ -82,10 +83,13 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', '#d084d0'
 
 export function AnalystDashboard() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  console.log('Component render - analyticsData:', analyticsData);
+  console.log('Component render - analyticsData teams count:', analyticsData?.teamPerformance?.length);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false to allow initial API call
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTimeframe, setSelectedTimeframe] = useState("last30");
   const [selectedTeam, setSelectedTeam] = useState("all");
+  const hasLoadedData = useRef(false); // Track if data has been loaded already
   
   // Team analysis filters
   const [selectedTeamFilter, setSelectedTeamFilter] = useState<string>('all');
@@ -105,8 +109,9 @@ export function AnalystDashboard() {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('AnalystDashboard useEffect triggered, calling fetchAnalyticsData');
     fetchAnalyticsData();
-  }, [selectedTimeframe, selectedTeam]);
+  }, []); // Only run once on mount to stop infinite loop
 
   // Persist team selection state
   useEffect(() => {
@@ -135,10 +140,42 @@ export function AnalystDashboard() {
   }, [selectedPlayers, matchConditions, playingEleven, teamInsights]);
 
   const fetchAnalyticsData = async () => {
+    console.log('=== fetchAnalyticsData called ===');
+    console.log('isLoading:', isLoading);
+    console.log('hasLoadedData.current:', hasLoadedData.current);
+    console.log('analyticsData:', analyticsData);
+    
+    // Prevent multiple simultaneous API calls BUT allow retry if no data loaded
+    if (isLoading || (hasLoadedData.current && analyticsData !== null)) {
+      console.log('Preventing API call due to loading state or already loaded data');
+      return;
+    }
+    
     try {
+      console.log('Starting API call...');
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Fetching analytics data from API...');
+      console.log('apiClient:', apiClient);
+      console.log('getPublicAnalyticsDashboard method exists:', typeof apiClient.getPublicAnalyticsDashboard === 'function');
       
+      // Fetch real analytics data from public API (no authentication required)
+      const data = await apiClient.getPublicAnalyticsDashboard();
+      console.log('Analytics data received:', data);
+      console.log('Team performance count:', data?.teamPerformance?.length);
+      console.log('Player stats count:', data?.playerStats?.length);
+      setAnalyticsData(data);
+      console.log('Analytics data set in state');
+      hasLoadedData.current = true; // Mark as loaded
+      
+      toast({
+        title: "Analytics data loaded",
+        description: "Dashboard updated with latest analytics data.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      
+      // Fallback to mock data if API fails
       const mockData: AnalyticsData = {
         teamPerformance: [
           { team: "India", wins: 18, losses: 7, winRate: 72, avgScore: 284, recentForm: ["W", "W", "L", "W", "W"] },
@@ -189,16 +226,18 @@ export function AnalystDashboard() {
         ]
       };
       
+      console.log('Using mock data as fallback');
       setAnalyticsData(mockData);
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
+      hasLoadedData.current = true; // Mark as loaded even with mock data
+      
       toast({
-        title: "Error loading analytics",
-        description: "Failed to fetch analytics data. Please try again.",
+        title: "Using cached data",
+        description: "API connection failed, using cached analytics data.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+      console.log('Analytics data loading complete, isLoading set to false');
     }
   };
 

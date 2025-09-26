@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: pitchpoint-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URL
+        value: mongodb+srv://dharaneeshc23aid_db_user:qd6q6bBRGOr4asMK@pitchpoint.7zktddx.mongodb.net/?retryWrites=true&w=majority&appName=PitchPoint
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+    healthCheckPath: /api/health
