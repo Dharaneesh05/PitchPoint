@@ -1,8 +1,8 @@
 import { type UserRole } from "@shared/schema";
 
 const API_BASE_URL = import.meta.env.PROD 
-  ? import.meta.env.VITE_API_URL || 'https://your-backend-on-render.com/api'
-  : '/api';
+  ? import.meta.env.VITE_API_URL || 'https://pitchpoint-backend.onrender.com'
+  : '';
 
 // Auth types
 interface LoginRequest {
@@ -739,25 +739,25 @@ class ApiClient {
 
   // Auth methods
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    return this.request("/auth/register", {
+    return this.request("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(userData),
     });
   }
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return this.request("/auth/login", {
+    return this.request("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
   }
 
   async logout() {
-    return this.request("/auth/logout", { method: "POST" });
+    return this.request("/api/auth/logout", { method: "POST" });
   }
 
   async verifyEmail(token: string) {
-    return this.request("/auth/verify-email", {
+    return this.request("/api/auth/verify-email", {
       method: "POST",
       body: JSON.stringify({ token }),
     });
@@ -1029,7 +1029,7 @@ class ApiClient {
 
   // Additional auth methods
   async resendVerification(email: string) {
-    const response = await this.request('/auth/resend-verification', {
+    const response = await this.request('/api/auth/resend-verification', {
       method: 'POST',
       body: JSON.stringify({ email })
     });
@@ -1037,7 +1037,7 @@ class ApiClient {
   }
 
   async forgotPassword(email: string) {
-    const response = await this.request('/auth/forgot-password', {
+    const response = await this.request('/api/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email })
     });
@@ -1045,7 +1045,7 @@ class ApiClient {
   }
 
   async devVerify(emailOrUsername: string) {
-    const response = await this.request('/auth/dev-verify', {
+    const response = await this.request('/api/auth/dev-verify', {
       method: 'POST',
       body: JSON.stringify({ emailOrUsername })
     });
@@ -1053,7 +1053,7 @@ class ApiClient {
   }
 
   async devLogin(role: string = 'analyst') {
-    const response = await this.request('/auth/dev-login', {
+    const response = await this.request('/api/auth/dev-login', {
       method: 'POST',
       body: JSON.stringify({ role })
     });

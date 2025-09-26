@@ -7,6 +7,36 @@ import { dataSyncService } from "./dataSyncService";
 import { fantasyPointsService } from "./fantasyService";
 
 const app = express();
+
+// CORS configuration for production deployment
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://pitch-point-frontend.vercel.app',
+    'https://pitchpoint-frontend.vercel.app',
+    'https://pitchpoint.vercel.app',
+    process.env.CLIENT_URL
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
