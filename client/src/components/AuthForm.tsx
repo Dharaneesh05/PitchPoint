@@ -171,8 +171,8 @@ export function AuthForm({ onLogin }: AuthFormProps) {
         localStorage.setItem('token', response.token);
         
         toast({
-          title: response.message,
-          description: `Welcome back, ${response.user.username}!`,
+          title: response?.message || 'Login successful',
+          description: `Welcome back, ${response?.user?.username || 'User'}!`,
         });
         
         onLogin(response);
@@ -185,18 +185,18 @@ export function AuthForm({ onLogin }: AuthFormProps) {
           role: formData.role,
         });
         
-        if (response.autoVerified) {
+        if (response && response.autoVerified) {
           // Auto-verified in development mode
           toast({
             title: response.message,
-            description: `Welcome to PitchPoint, ${response.user.username}!`,
+            description: `Welcome to PitchPoint, ${response.user?.username || 'User'}!`,
           });
           
           // Save token to localStorage
           localStorage.setItem('token', response.token);
           
           onLogin(response);
-        } else if (response.requiresVerification) {
+        } else if (response && response.requiresVerification) {
           setAuthState({ 
             step: 'verify-email', 
             email: formData.email,
@@ -208,30 +208,45 @@ export function AuthForm({ onLogin }: AuthFormProps) {
             description: "Please check your email to verify your account.",
           });
         } else {
-          toast({
-            title: response.message,
-            description: `Welcome to PitchPoint, ${response.user.username}!`,
-          });
-          
-          onLogin(response);
+          if (response && response.user) {
+            toast({
+              title: response.message,
+              description: `Welcome to PitchPoint, ${response.user?.username || 'User'}!`,
+            });
+            
+            onLogin(response);
+          } else {
+            toast({
+              title: "Registration Successful!",
+              description: "Welcome to PitchPoint!",
+            });
+          }
         }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
       
-      if (error.message?.includes('Email not verified')) {
+      const errorMessage = error?.message || error?.error || 'An error occurred';
+      
+      if (errorMessage.includes('Email not verified') || errorMessage.includes('verification')) {
         setAuthState({ 
           step: 'verify-email', 
           email: formData.email || formData.username,
           requiresVerification: true 
         });
-      } else {
-        setError(error instanceof Error ? error.message : 'An error occurred');
         
         // In development mode, show quick verification option
-        if (import.meta.env.DEV && error.message?.includes('Email not verified')) {
-          setError(error.message + ' (Click the verification button below to fix this in development mode)');
+        if (import.meta.env.DEV) {
+          setError(errorMessage + ' (Click the verification button below to fix this in development mode)');
         }
+      } else {
+        setError(errorMessage);
+        
+        toast({
+          variant: "destructive",
+          title: "Authentication Failed",
+          description: errorMessage
+        });
       }
     } finally {
       setIsLoading(false);

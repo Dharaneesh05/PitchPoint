@@ -4875,11 +4875,14 @@ app.use((req, res, next) => {
     "https://pitch-point-frontend.vercel.app",
     "https://pitchpoint-frontend.vercel.app",
     "https://pitchpoint.vercel.app",
+    "https://your-actual-vercel-domain.vercel.app",
     process.env.CLIENT_URL
   ].filter(Boolean);
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (allowedOrigins.includes(origin) || origin.includes("vercel.app"))) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (!origin) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");

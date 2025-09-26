@@ -60,8 +60,17 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
       
-      // Handle mock data fallback for development
-      if (response.status === 403 || response.status === 500 || !response.ok) {
+      // If response is not ok, try to get the error message
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`API request failed for ${endpoint}:`, response.status, errorData);
+        
+        // For auth endpoints, don't use mock data, throw the actual error
+        if (endpoint.includes('/api/auth/')) {
+          throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // For other endpoints, fall back to mock data
         console.warn(`API request failed for ${endpoint}, using mock data`);
         return this.getMockDataForEndpoint(endpoint);
       }
@@ -69,7 +78,13 @@ class ApiClient {
       return await response.json();
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
-      // Return mock data as fallback
+      
+      // For auth endpoints, throw the error instead of using mock data
+      if (endpoint.includes('/api/auth/')) {
+        throw error;
+      }
+      
+      // For other endpoints, return mock data as fallback
       return this.getMockDataForEndpoint(endpoint);
     }
   }
