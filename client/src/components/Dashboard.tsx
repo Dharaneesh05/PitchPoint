@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { MatchCard } from "./MatchCard";
 import { PlayerCard } from "./PlayerCard";
 import { DashboardChart } from "./DashboardChart";
-import { TrendingUp, TrendingDown, Users, Trophy, Target, Activity, BarChart3 } from "lucide-react";
+import { AnalystDashboard } from "./AnalystDashboard";
+import { FanDashboard } from "./FanDashboard";
+import { CoachDashboard } from "./CoachDashboard";
 
 type UserRole = "coach" | "analyst" | "fan";
 
@@ -13,7 +15,6 @@ interface DashboardProps {
   userName: string;
 }
 
-// todo: remove mock functionality - Mock data for demonstration
 const mockMatches = [
   {
     id: "1",
@@ -122,57 +123,71 @@ export function Dashboard({ userRole, userName }: DashboardProps) {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="border-0 shadow-lg bg-slate-800/40 border-slate-700">
+          <CardHeader className="bg-gradient-to-r from-green-800/40 to-emerald-800/40 rounded-t-lg pb-3">
+            <CardTitle className="text-sm font-bold text-white flex items-center justify-between">
+              Win Rate
+              <span className="h-8 w-8 rounded-full bg-green-800/60 flex items-center justify-center">
+                <span className="text-green-300 font-bold text-xs">W</span>
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">73%</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              +12% from last month
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold text-white">73%</div>
+            <p className="text-sm text-green-400 font-medium mt-2">
+              ↗ +12% from last month
             </p>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Players</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-lg bg-slate-800/40 border-slate-700">
+          <CardHeader className="bg-gradient-to-r from-blue-800/40 to-indigo-800/40 rounded-t-lg pb-3">
+            <CardTitle className="text-sm font-bold text-white flex items-center justify-between">
+              Available Players
+              <span className="h-8 w-8 rounded-full bg-blue-800/60 flex items-center justify-center">
+                <span className="text-blue-300 font-bold text-xs">P</span>
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">18</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold text-white">18</div>
+            <p className="text-sm text-gray-300 font-medium mt-2">
               3 injured, 15 fit
             </p>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Match</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-lg bg-slate-800/40 border-slate-700">
+          <CardHeader className="bg-gradient-to-r from-purple-800/40 to-pink-800/40 rounded-t-lg pb-3">
+            <CardTitle className="text-sm font-bold text-white flex items-center justify-between">
+              Next Match
+              <span className="h-8 w-8 rounded-full bg-purple-800/60 flex items-center justify-center">
+                <span className="text-purple-300 font-bold text-xs">M</span>
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2 days</div>
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold text-white">2 days</div>
+            <p className="text-sm text-gray-300 font-medium mt-2">
               vs Australia - MCG
             </p>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Rating</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+        <Card className="border-0 shadow-lg bg-slate-800/40 border-slate-700">
+          <CardHeader className="bg-gradient-to-r from-orange-800/40 to-amber-800/40 rounded-t-lg pb-3">
+            <CardTitle className="text-sm font-bold text-white flex items-center justify-between">
+              Team Rating
+              <span className="h-8 w-8 rounded-full bg-orange-800/60 flex items-center justify-center">
+                <span className="text-orange-300 font-bold text-xs">R</span>
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8.7</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              Excellent form
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold text-white">8.7</div>
+            <p className="text-sm text-green-400 font-medium mt-2">
+              ↗ Excellent form
             </p>
           </CardContent>
         </Card>
@@ -231,220 +246,15 @@ export function Dashboard({ userRole, userName }: DashboardProps) {
     </div>
   );
 
-  const renderAnalystDashboard = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Analytics Dashboard</h1>
-        <p className="text-muted-foreground">Deep insights and performance analysis for {userName}.</p>
-      </div>
+  const renderAnalystDashboard = () => <AnalystDashboard />;
 
-      {/* Analytics Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reports Generated</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">47</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Data Points</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12.4K</div>
-            <p className="text-xs text-muted-foreground">
-              Analyzed this week
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accuracy Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">94%</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              +3% this quarter
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saved Analysis</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">
-              Ready for review
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+  const renderFanDashboard = () => <FanDashboard />;
 
-      {/* Analytics Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardChart 
-          title="Performance Analysis Trends" 
-          data={performanceData} 
-          type="bar" 
-        />
-        <DashboardChart 
-          title="Match Outcome Predictions" 
-          data={teamCompositionData} 
-          type="pie" 
-        />
-      </div>
-
-      {/* Recent Analysis */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Recent Match Analysis</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {mockMatches.map((match) => (
-            <MatchCard 
-              key={match.id} 
-              match={match} 
-              showAnalytics 
-              onAnalyze={handleMatchAnalyze} 
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFanDashboard = () => (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Welcome back, {userName}!</h1>
-        <p className="text-muted-foreground">Stay updated with live matches, make predictions, and track your favorites.</p>
-      </div>
-
-      {/* Fan Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prediction Score</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="inline h-3 w-3 mr-1" />
-              Rank #156
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Correct Predictions</CardTitle>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">68%</div>
-            <p className="text-xs text-muted-foreground">
-              34 of 50 matches
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Favorite Teams</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">
-              Following updates
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fantasy Points</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">2,456</div>
-            <p className="text-xs text-muted-foreground">
-              This season
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fan Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardChart 
-          title="Your Prediction Accuracy" 
-          data={performanceData} 
-          type="line" 
-        />
-        <DashboardChart 
-          title="Engagement Activity" 
-          data={fanEngagementData} 
-          type="bar" 
-        />
-      </div>
-
-      {/* Live Matches and Favorites */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Live & Upcoming Matches</h2>
-            <Badge variant="destructive" className="animate-pulse">2 LIVE</Badge>
-          </div>
-          <div className="space-y-4">
-            {mockMatches.map((match) => (
-              <MatchCard 
-                key={match.id} 
-                match={match} 
-                showAnalytics 
-                onPredict={handleMatchPredict} 
-              />
-            ))}
-          </div>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Favorite Players</h2>
-            <Button variant="outline" size="sm">Manage Favorites</Button>
-          </div>
-          <div className="space-y-4">
-            {mockPlayers.map((player) => (
-              <PlayerCard 
-                key={player.id} 
-                player={player} 
-                showActions 
-                onFavorite={handlePlayerFavorite} 
-                isFavorite={player.id === '1'} 
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const renderCoachDashboardNew = () => <CoachDashboard />;
 
   switch (userRole) {
     case 'coach':
-      return renderCoachDashboard();
+      return renderCoachDashboardNew();
     case 'analyst':
       return renderAnalystDashboard();
     case 'fan':

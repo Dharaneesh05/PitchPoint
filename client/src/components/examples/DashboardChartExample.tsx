@@ -1,5 +1,4 @@
 import { DashboardChart } from '../DashboardChart';
-
 export default function DashboardChartExample() {
   const sampleData = [
     { name: "Jan", value: 85 },
@@ -9,7 +8,6 @@ export default function DashboardChartExample() {
     { name: "May", value: 88 },
     { name: "Jun", value: 91 },
   ];
-
   return (
     <div className="p-4 space-y-6">
       <DashboardChart 

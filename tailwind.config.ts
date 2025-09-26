@@ -83,9 +83,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        serif: ["Georgia", "serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ['Open Sans', 'Roboto', 'sans-serif'],
+        serif: ['Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+        heading: ['Montserrat', 'Lato', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {

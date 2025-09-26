@@ -2,6 +2,9 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { dbConnection } from "./mongodb";
+import { dataSyncService } from "./dataSyncService";
+import { fantasyPointsService } from "./fantasyService";
 
 const app = express();
 app.use(express.json());
@@ -38,6 +41,27 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Connect to MongoDB first
+  try {
+    await dbConnection.connect();
+    log('MongoDB connected successfully');
+    
+    // Initialize data sync service with CricAPI
+    console.log("Initializing CricAPI data sync...");
+    await dataSyncService.initialize();
+    console.log("CricAPI data sync initialized");
+    
+    // Update fantasy points for completed matches
+    log('Updating fantasy points...');
+    await fantasyPointsService.updateFantasyPointsForCompletedMatches();
+    log('Fantasy points updated');
+    
+  } catch (error) {
+    console.error('Failed to initialize services:', error);
+    // Don't exit, continue without data sync for development
+    console.log('Continuing without data sync initialization...');
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -62,11 +86,21 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  
+  // Try different host configurations for better compatibility
+  const host = process.env.NODE_ENV === 'development' ? 'localhost' : '0.0.0.0';
+  
+  server.listen(port, host, () => {
+    log(`PitchPoint server running on http://${host}:${port}`);
+    log(`API available at http://${host}:${port}/api`);
+    log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    log(`MongoDB: ${dbConnection.getConnectionStatus() ? 'Connected' : 'Disconnected'}`);
+  });
+
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('\nShutting down...');
+    await dbConnection.disconnect();
+    process.exit(0);
   });
 })();
