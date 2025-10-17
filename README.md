@@ -1,19 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PitchPoint README</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0 auto; max-width: 800px; padding: 20px; }
-        h1 { color: #333; }
-        h2 { color: #555; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        ul { list-style-type: disc; padding-left: 20px; }
-        pre { background: #f4f4f4; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; }
-        img { max-width: 100%; height: auto; }
-    </style>
-</head>
-<body>
     <h1>PitchPoint</h1>
     <p>PitchPoint is a comprehensive full-stack web application tailored for cricket fans, analysts, and coaches. It enables users to dive deep into cricket data, analyze player statistics, team performances, and leverage a lightweight machine learning integration for predicting player performance based on historical data. Whether you're a passionate fan tracking your favorite players, an analyst crunching numbers for insights, or a coach strategizing for upcoming matches, PitchPoint provides an intuitive platform to visualize, predict, and explore all aspects of cricket from one centralized website.</p>
 
@@ -64,5 +48,3 @@
     <img src="screenshots/dashboard.png" alt="Dashboard Screenshot">
     <h3>Performance Prediction</h3>
     <img src="screenshots/prediction-page.jpg" alt="Prediction Screenshot">
-</body>
-</html>
