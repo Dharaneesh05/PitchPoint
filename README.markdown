@@ -84,7 +84,7 @@ npm run start
 ![Dashboard Screenshot](screenshots/login.png)
 
 ### Fan Dashboard
-![Dashboard Screenshot](Fan Dashboard.png)
+![Dashboard Screenshot](screenshots/FanDashboard.png)
 
 ## Contributing
 
