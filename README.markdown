@@ -81,7 +81,7 @@ npm run start
 ![Dashboard Screenshot](screenshots/PerformanceAnalytics.png)
 
 ### Team Selection
-![Dashboard Screenshot](screenshots/login.png)
+![Dashboard Screenshot](screenshots/TeamSelection.png)
 
 ### Fan Dashboard
 ![Dashboard Screenshot](screenshots/FanDashboard.png)
