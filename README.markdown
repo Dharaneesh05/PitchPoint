@@ -65,11 +65,26 @@ npm run start
 
 ## Screenshots
 
-### Dashboard View
+### SignUp/Login
 ![Dashboard Screenshot](screenshots/login.png)
 
-### Performance Prediction
-![Prediction Screenshot](screenshots/prediction-page.jpg)
+### Coach Dashboard
+![Dashboard Screenshot](screenshots/CoachDashboard.png)
+
+### Match Analysis
+![Dashboard Screenshot](screenshots/MatchAnalysis.png)
+
+### Analytics Dashboard
+![Dashboard Screenshot](screenshots/AnalyticsDashboard.png)
+
+### Performance Analysis
+![Dashboard Screenshot](screenshots/PerformanceAnalytics.png)
+
+### Team Selection
+![Dashboard Screenshot](screenshots/login.png)
+
+### Fan Dashboard
+![Dashboard Screenshot](Fan Dashboard.png)
 
 ## Contributing
 
