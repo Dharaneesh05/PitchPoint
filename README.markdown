@@ -66,7 +66,7 @@ npm run start
 ## Screenshots
 
 ### Dashboard View
-![Dashboard Screenshot](screenshots/Screenshot 2025-08-26 153504.png)
+![Dashboard Screenshot](screenshots/login.png)
 
 ### Performance Prediction
 ![Prediction Screenshot](screenshots/prediction-page.jpg)
