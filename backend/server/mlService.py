@@ -20,17 +20,10 @@ from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, r2_score
 import warnings
 warnings.filterwarnings('ignore')
-
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CricketMLService:
-    """
-    Machine Learning service for cricket performance prediction
-    Handles both batting and bowling predictions
-    """
-    
     def __init__(self):
         self.batting_models = {}
         self.bowling_models = {}
@@ -38,17 +31,11 @@ class CricketMLService:
         self.player_encodings = {}
         self.team_encodings = {}
         
-        # Initialize models
         self._initialize_models()
-        
-        # Load mock training data
         self._load_mock_data()
-        
-        # Train models with mock data
         self._train_models()
     
     def _initialize_models(self):
-        """Initialize all ML models"""
         self.batting_models = {
             'decision_tree': DecisionTreeRegressor(random_state=42),
             'random_forest': RandomForestRegressor(n_estimators=100, random_state=42),
@@ -68,27 +55,22 @@ class CricketMLService:
         }
     
     def _load_mock_data(self):
-        """Load comprehensive mock training data"""
-        
-        # Mock batting data
         self.batting_data = pd.DataFrame({
             'Player': ['Virat Kohli', 'Rohit Sharma', 'Steve Smith', 'Joe Root', 'Kane Williamson',
                       'Babar Azam', 'David Warner', 'KL Rahul', 'Ben Stokes', 'Quinton de Kock'] * 50,
             'Opposition': ['Pakistan', 'Australia', 'England', 'India', 'New Zealand',
                           'South Africa', 'Sri Lanka', 'Bangladesh', 'West Indies', 'Afghanistan'] * 50,
-            'BF': np.random.randint(20, 200, 500),  # Balls Faced
-            'Overs': np.random.uniform(3.0, 50.0, 500),  # Overs played
-            'Target': np.random.randint(150, 400, 500),  # Target score
-            'Team_Runs': np.random.randint(200, 450, 500),  # Team total
-            'Runs': np.random.randint(0, 150, 500),  # Player runs
-            'SR': np.random.uniform(50.0, 200.0, 500),  # Strike rate
+            'BF': np.random.randint(20, 200, 500),  
+            'Overs': np.random.uniform(3.0, 50.0, 500),  
+            'Target': np.random.randint(150, 400, 500),  
+            'Team_Runs': np.random.randint(200, 450, 500), 
+            'Runs': np.random.randint(0, 150, 500),  
+            'SR': np.random.uniform(50.0, 200.0, 500), 
             'Fours': np.random.randint(0, 20, 500),
             'Sixes': np.random.randint(0, 10, 500),
             'Result': np.random.choice(['won', 'lost'], 500),
             'Country': np.random.choice(['India', 'Australia', 'England', 'Pakistan', 'New Zealand'], 500)
         })
-        
-        # Mock bowling data
         self.bowling_data = pd.DataFrame({
             'player': ['Jasprit Bumrah', 'Pat Cummins', 'James Anderson', 'Mitchell Starc', 'Trent Boult',
                       'Kagiso Rabada', 'Mohammed Shami', 'Josh Hazlewood', 'Ravindra Jadeja', 'Nathan Lyon'] * 50,
@@ -112,44 +94,30 @@ class CricketMLService:
         logger.info("Mock training data loaded successfully")
     
     def _prepare_batting_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
-        """Prepare features for batting prediction"""
-        # Create player and opposition encodings
         if not self.player_encodings:
             unique_players = data['Player'].unique()
             self.player_encodings = {player: idx for idx, player in enumerate(unique_players)}
             
             unique_oppositions = data['Opposition'].unique()
             self.team_encodings = {team: idx for idx, team in enumerate(unique_oppositions)}
-        
-        # Create feature dataframe
         features = data.copy()
         features['Player_encoded'] = features['Player'].map(self.player_encodings).fillna(0)
         features['Opposition_encoded'] = features['Opposition'].map(self.team_encodings).fillna(0)
-        
-        # Select relevant features
         X = features[['Player_encoded', 'Opposition_encoded', 'BF', 'Overs']]
         y = features['Runs']
-        
         return X, y
-    
+
     def _prepare_bowling_features(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
-        """Prepare features for bowling prediction"""
-        # Encode categorical variables
         features = data.copy()
         features['team_encoded'] = pd.Categorical(features['team']).codes
         features['opposition_encoded'] = pd.Categorical(features['opposition']).codes
-        
-        # Select relevant features
         X = features[['team_encoded', 'opposition_encoded', 'overs', 'balls', 'maidens', 
                      'conceded', 'economy', 'dots', 'fours', 'sixes', 'wides', 'noballs']]
         y = features['wickets']
-        
         return X, y
     
     def _train_models(self):
-        """Train all models with the prepared data"""
         try:
-            # Train batting models
             X_bat, y_bat = self._prepare_batting_features(self.batting_data)
             X_bat_train, X_bat_test, y_bat_train, y_bat_test = train_test_split(
                 X_bat, y_bat, test_size=0.2, random_state=42
@@ -161,8 +129,6 @@ class CricketMLService:
                 score = model.score(X_bat_test, y_bat_test)
                 batting_scores[name] = score
                 logger.info(f"Batting {name} score: {score:.4f}")
-            
-            # Train bowling models
             X_bowl, y_bowl = self._prepare_bowling_features(self.bowling_data)
             X_bowl_train, X_bowl_test, y_bowl_train, y_bowl_test = train_test_split(
                 X_bowl, y_bowl, test_size=0.2, random_state=42
@@ -193,50 +159,23 @@ class CricketMLService:
                                    balls_faced: int, 
                                    overs: float,
                                    model_type: str = 'random_forest') -> Dict[str, Any]:
-        """
-        Predict batting performance for a given player
-        
-        Args:
-            player_name: Name of the batsman
-            opposition: Opposition team
-            balls_faced: Number of balls faced
-            overs: Number of overs faced
-            model_type: Type of model to use for prediction
-            
-        Returns:
-            Dictionary containing prediction results
-        """
         if not self.is_trained:
             return {'error': 'Models not trained yet'}
         
         try:
-            # Encode inputs
             player_encoded = self.player_encodings.get(player_name, 0)
             opposition_encoded = self.team_encodings.get(opposition, 0)
-            
-            # Prepare input features
             input_features = np.array([[player_encoded, opposition_encoded, balls_faced, overs]])
-            
-            # Get prediction from specified model
             if model_type not in self.batting_models:
-                model_type = 'random_forest'  # fallback
-            
+                model_type = 'random_forest'  
             model = self.batting_models[model_type]
             predicted_runs = model.predict(input_features)[0]
-            
-            # Get predictions from all models for ensemble
             all_predictions = {}
             for name, mdl in self.batting_models.items():
                 all_predictions[name] = mdl.predict(input_features)[0]
-            
-            # Calculate ensemble prediction
             ensemble_prediction = np.mean(list(all_predictions.values()))
-            
-            # Calculate confidence based on model variance
             prediction_variance = np.var(list(all_predictions.values()))
-            confidence = max(0.5, 1.0 - (prediction_variance / 100))  # Simple confidence metric
-            
-            # Generate performance insights
+            confidence = max(0.5, 1.0 - (prediction_variance / 100))
             insights = self._generate_batting_insights(
                 player_name, opposition, predicted_runs, balls_faced, overs
             )
@@ -266,28 +205,12 @@ class CricketMLService:
                                    opposition: str, 
                                    overs: float,
                                    model_type: str = 'random_forest') -> Dict[str, Any]:
-        """
-        Predict bowling performance for a given player
-        
-        Args:
-            player_name: Name of the bowler
-            team: Player's team
-            opposition: Opposition team
-            overs: Number of overs to bowl
-            model_type: Type of model to use for prediction
-            
-        Returns:
-            Dictionary containing prediction results
-        """
         if not self.is_trained:
             return {'error': 'Models not trained yet'}
         
         try:
-            # Encode inputs (simplified encoding)
             team_encoded = hash(team) % 10
             opposition_encoded = hash(opposition) % 10
-            
-            # Estimate other bowling parameters based on overs
             balls = int(overs * 6)
             estimated_maidens = max(0, int(overs * 0.2))  # 20% maidens estimate
             estimated_conceded = int(overs * 6)  # 6 runs per over estimate

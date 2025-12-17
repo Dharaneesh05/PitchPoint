@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cricket-analytics-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URL
+        fromDatabase:
+          name: mongodb-atlas
+          property: connectionString
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health

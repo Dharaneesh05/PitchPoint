@@ -1,6 +1,8 @@
 import { type UserRole } from "@shared/schema";
 
-const API_BASE_URL = import.meta.env.PROD ? '/api' : '/api';
+const API_BASE_URL = import.meta.env.PROD 
+  ? import.meta.env.VITE_API_URL || 'https://your-backend-on-render.com/api'
+  : '/api';
 
 // Auth types
 interface LoginRequest {

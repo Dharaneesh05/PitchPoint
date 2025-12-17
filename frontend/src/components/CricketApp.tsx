@@ -32,15 +32,12 @@ export function CricketApp() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  // Development helper - clear localStorage if data format is wrong
   useEffect(() => {
     const clearInvalidData = () => {
       try {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
-          // If the user data doesn't have username and role, clear it
           if (!userData || !userData.username || !userData.role) {
             console.log('Clearing invalid localStorage data');
             localStorage.removeItem('auth-token');
@@ -57,14 +54,11 @@ export function CricketApp() {
     clearInvalidData();
   }, []);
 
-  // Check for existing session on app load
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Always start with no user to force login
         setUser(null);
         
-        // Clear any existing authentication
         localStorage.removeItem('auth-token');
         localStorage.removeItem('user');
         
@@ -91,12 +85,9 @@ export function CricketApp() {
       emailVerified: loginData.user.emailVerified
     };
     
-    // Set user state and localStorage
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('auth-token', loginData.token);
-    
-    // Set the token in the API client
     const { apiClient } = await import('@/lib/api');
     apiClient.setToken(loginData.token);
     
@@ -121,7 +112,6 @@ export function CricketApp() {
       });
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear user even if API call fails
       setUser(null);
       localStorage.removeItem('auth-token');
       localStorage.removeItem('user');
@@ -135,7 +125,6 @@ export function CricketApp() {
     }
   };
 
-  // Show loading spinner during initial session check
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

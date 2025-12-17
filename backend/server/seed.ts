@@ -10,10 +10,7 @@ const teamData: InsertTeam[] = [
     name: "India",
     shortName: "IND",
     country: "India",
-    logo: "https://www.cricket.com.au/-/media/Images/ECB/Teams/India/india-logo.ashx"
-  },
-    throw error;
-  }.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop"
+    logo: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop"
   },
   {
     name: "Australia",
