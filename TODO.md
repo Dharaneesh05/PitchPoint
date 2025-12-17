@@ -1,0 +1,3 @@
+- [ ] Add all files to staging: git add .
+- [ ] Commit changes: git commit -m "Repush project updates"
+- [ ] Push to remote: git push origin main
