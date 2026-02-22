@@ -2599,7 +2599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { query, role, team, form, nationality, limit = '20' } = req.query;
       
       // Import mock data
-      const { searchPlayers } = await import('../client/src/lib/mockPlayers');
+      const { searchPlayers } = await import('../frontend/src/lib/mockPlayers');
       
       const filters = {
         role: role as string,
@@ -2633,7 +2633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerId = req.params.playerId;
       
       // Import mock data
-      const { getPlayerById } = await import('../client/src/lib/mockPlayers');
+      const { getPlayerById } = await import('../frontend/src/lib/mockPlayers');
       
       const player = getPlayerById(playerId);
       
